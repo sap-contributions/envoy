@@ -24,6 +24,7 @@ option (udpa.annotations.file_status).package_version_status = ACTIVE;
 // [#extension: envoy.filters.http.oauth2]
 //
 
+// [#next-free-field: 6]
 message OAuth2Credentials {
   // [#next-free-field: 6]
   message CookieNames {
@@ -64,8 +65,10 @@ message OAuth2Credentials {
     option (validate.required) = true;
 
     // If present, the secret token will be a HMAC using the provided secret.
-    transport_sockets.tls.v3.SdsSecretConfig hmac_secret = 3
-        [(validate.rules).message = {required: true}];
+    transport_sockets.tls.v3.SdsSecretConfig hmac_secret = 3;
+
+    // If present, the secret token will be a encrypted using the provided secret.
+    transport_sockets.tls.v3.SdsSecretConfig encryption_secret = 5;
   }
 
   // The cookie names used in OAuth filters flow.

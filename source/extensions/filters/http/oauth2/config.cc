@@ -49,6 +49,11 @@ Http::FilterFactoryCb OAuth2Config::createFilterFactoryFromProtoTyped(
 
   const auto& token_secret = credentials.token_secret();
   const auto& hmac_secret = credentials.hmac_secret();
+  const auto& encryption_secret = credentials.encryption_secret();
+
+  if ((credentials.has_encryption_secret() && credentials.has_hmac_secret()) || (!credentials.has_encryption_secret() && !credentials.has_hmac_secret())) {
+    throw EnvoyException("precisely one of HMAC secret or encryption secret must be configured");
+  }
 
   auto& cluster_manager = context.serverFactoryContext().clusterManager();
   auto& secret_manager = cluster_manager.clusterManagerFactory().secretManager();
@@ -58,14 +63,21 @@ Http::FilterFactoryCb OAuth2Config::createFilterFactoryFromProtoTyped(
   if (secret_provider_token_secret == nullptr) {
     throw EnvoyException("invalid token secret configuration");
   }
+
   auto secret_provider_hmac_secret =
       secretsProvider(hmac_secret, secret_manager, transport_socket_factory, context.initManager());
-  if (secret_provider_hmac_secret == nullptr) {
+  if (secret_provider_hmac_secret == nullptr && credentials.has_hmac_secret()) {
     throw EnvoyException("invalid HMAC secret configuration");
   }
 
+  auto secret_provider_encryption_secret =
+      secretsProvider(encryption_secret, secret_manager, transport_socket_factory, context.initManager());
+  if (secret_provider_encryption_secret == nullptr && credentials.has_encryption_secret()) {
+    throw EnvoyException("invalid encryption secret configuration");
+  }
+
   auto secret_reader =
-      std::make_shared<SDSSecretReader>(secret_provider_token_secret, secret_provider_hmac_secret,
+      std::make_shared<SDSSecretReader>(secret_provider_token_secret, secret_provider_hmac_secret, secret_provider_encryption_secret,
                                         context.serverFactoryContext().api());
   auto config = std::make_shared<FilterConfig>(proto_config, cluster_manager, secret_reader,
                                                context.scope(), stats_prefix);

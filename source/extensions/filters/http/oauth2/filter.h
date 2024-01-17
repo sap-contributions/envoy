@@ -41,18 +41,24 @@ public:
   virtual ~SecretReader() = default;
   virtual const std::string& clientSecret() const PURE;
   virtual const std::string& tokenSecret() const PURE;
+  virtual const std::string& encryptionSecret() const PURE;
 };
 
 class SDSSecretReader : public SecretReader {
 public:
   SDSSecretReader(Secret::GenericSecretConfigProviderSharedPtr client_secret_provider,
-                  Secret::GenericSecretConfigProviderSharedPtr token_secret_provider, Api::Api& api)
+                  Secret::GenericSecretConfigProviderSharedPtr token_secret_provider,
+                  Secret::GenericSecretConfigProviderSharedPtr encryption_secret_provider,
+                  Api::Api& api)
       : update_callback_client_(readAndWatchSecret(client_secret_, client_secret_provider, api)),
-        update_callback_token_(readAndWatchSecret(token_secret_, token_secret_provider, api)) {}
+        update_callback_token_(readAndWatchSecret(token_secret_, token_secret_provider, api)),
+        update_callback_encryption_(readAndWatchSecret(encryption_secret_, encryption_secret_provider, api)) {}
 
   const std::string& clientSecret() const override { return client_secret_; }
 
   const std::string& tokenSecret() const override { return token_secret_; }
+
+  const std::string& encryptionSecret() const override { return encryption_secret_; }
 
 private:
   Envoy::Common::CallbackHandlePtr
@@ -73,9 +79,11 @@ private:
 
   std::string client_secret_;
   std::string token_secret_;
+  std::string encryption_secret_;
 
   Envoy::Common::CallbackHandlePtr update_callback_client_;
   Envoy::Common::CallbackHandlePtr update_callback_token_;
+  Envoy::Common::CallbackHandlePtr update_callback_encryption_;
 };
 
 /**
